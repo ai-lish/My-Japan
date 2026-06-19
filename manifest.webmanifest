@@ -1,0 +1,28 @@
+{
+ "id": "/my-japan/",
+ "scope": "./",
+ "name": "My-Japan (心の日本)",
+ "short_name": "My-Japan",
+ "description": "JLPT N1/N2 語音記憶字卡與日本隨身旅行日記 PWA 伴侶",
+ "start_url": "./index.html",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#121214",
+ "theme_color": "#D11A2A",
+ "categories": [
+ "education",
+ "travel"
+ ],
+ "icons": [
+ {
+ "src": "icons/icon-192.png",
+ "sizes": "192x192",
+ "type": "image/png"
+ },
+ {
+ "src": "icons/icon-512.png",
+ "sizes": "512x512",
+ "type": "image/png"
+ }
+ ]
+}

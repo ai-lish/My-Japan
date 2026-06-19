@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>My-Japan (心の日本) - AI & FSRS PWA companion (Prototype Demo)</title>
+
+ <!-- Link to normalization PWA Manifest -->
+ <link rel="manifest" href="manifest.webmanifest">
+
+ <!-- Tailwind CSS -->
+ <script src="https://cdn.tailwindcss.com"></script>
+ <script>
+ tailwind.config = {
+ theme: {
+ extend: {
+ colors: {
+ shinto: '#D11A2A', // 朱砂紅
+ tatami: '#F4EBE1', // 暖白/疊席色
+ charcoal: '#1E1E24', // 黛黑
+ goldfoil: '#D4AF37', // 金箔
+ moss: '#4A5D4E' // 苔綠
+ }
+ }
+ }
+ }
+ </script>
+ <!-- FontAwesome for Premium Icons -->
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+ <!-- Lucide Icons via Dev CDN -->
+ <script src="https://unpkg.com/lucide@latest"></script>
+ <!-- Google Fonts for Elegant JP/TC Typography -->
+ <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+ <style>
+ body {
+ font-family: 'Noto Sans TC', 'Noto Sans JP', sans-serif;
+ background-color: #121214;
+ color: #E2E2E7;
+ -webkit-tap-highlight-color: transparent;
+ }
+ /* Custom scrollbar for beautiful scroll panes */
+ ::-webkit-scrollbar {
+ width: 6px;
+ height: 6px;
+ }
+ ::-webkit-scrollbar-track {
+ background: #1A1A1E;
+ }
+ ::-webkit-scrollbar-thumb {
+ background: #2E2E38;
+ border-radius: 3px;
+ }
+ ::-webkit-scrollbar-thumb:hover {
+ background: #D11A2A;
+ }
+ /* Card Flip Animation */
+ .perspective-1000 {
+ perspective: 1000px;
+ }
+ .transform-style-3d {
+ transform-style: preserve-3d;
+ }
+ .backface-hidden {
+ backface-visibility: hidden;
+ }
+ .rotate-y-180 {
+ transform: rotateY(180deg);
+ }
+ /* Soft glow pulsing for AI or premium states */
+ @keyframes pulse-gold {
+ 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(212, 175, 55, 0.4)); }
+ 50% { transform: scale(1.05); filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.8)); }
+ }
+ .pulse-gold-active {
+ animation: pulse-gold 2s infinite ease-in-out;
+ }
+ </style>
+</head>
+<body class="min-h-screen flex flex-col pb-24 md:pb-6 md:pl-24">
+
+ <!-- TOP HEADER -->
+ <header class="bg-charcoal border-b border-gray-800 px-4 py-3 sticky top-0 z-40 flex flex-wrap items-center justify-between gap-3">
+ <div class="flex items-center gap-3">
+ <div class="bg-shinto/10 p-2 rounded-lg text-shinto flex-shrink-0">
+ <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+ <path d="M4 8h16M4 12h16M7 8v12M17 8v12M2 5c4-1 16-1 20 0M5 20h14" />
+ </svg>
+ </div>
+ <div>
+ <h1 class="font-bold text-lg text-white tracking-wide flex items-center gap-1.5">
+ My-Japan <span class="text-xs bg-shinto text-white px-1.5 py-0.5 rounded font-normal">心の日本</span>
+ </h1>
+ <p class="text-[10px] text-gray-400">JLPT N1/N2 衝刺與日本見聞隨身腦</p>
+ </div>
+ </div>
+
+ <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+ <button id="networkBtn" onclick="toggleNetworkStatus()" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] md:text-xs font-medium transition bg-emerald-950 text-emerald-400 border border-emerald-800">
+ <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+ <span>線上模式 (模擬)</span>
+ </button>
+
+ <div id="syncBadge" class="hidden flex items-center gap-1 bg-gray-800 text-gray-300 text-[10px] md:text-xs px-2.5 py-1 rounded-full">
+ <i class="fa-solid fa-cloud-arrow-up text-gray-400"></i>
+ <span id="syncQueueCount">佇列: 0 (模擬)</span>
+ </div>
+
+ <div class="flex items-center gap-1 bg-goldfoil/10 border border-goldfoil/30 text-goldfoil text-[10px] md:text-xs px-2.5 py-1 rounded-full font-bold">
+ <i class="fa-solid fa-coins"></i>
+ <span id="gachaPointsDisplay">150</span> <span class="text-[9px] font-normal">點</span>
+ </div>
+ </div>
+ </header>
+
+ <!-- SIDE NAVIGATION FOR DESKTOP / TABLET -->
+ <nav class="hidden md:flex flex-col bg-charcoal border-r border-gray-800 w-24 fixed left-0 top-0 bottom-0 py-6 items-center gap-6 z-40">
+ <div class="text-shinto mb-6">
+ <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+ <path d="M4 8h16M4 12h16M7 8v12M17 8v12M2 5c4-1 16-1 20 0M5 20h14" />
+ </svg>
+ </div>
+ <button id="nav-desktop-study" onclick="switchTab('study')" class="nav-btn active flex flex-col items-center gap-1 text-shinto hover:text-shinto transition py-2 w-full border-l-2 border-shinto">
+ <i class="fa-solid fa-book-open-reader text-lg"></i>
+ <span class="text-[10px]">背字卡</span>
+ </button>
+ <button id="nav-desktop-notes" onclick="switchTab('notes')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 hover:text-shinto transition py-2 w-full border-l-2 border-transparent">
+ <i class="fa-solid fa-camera-retro text-lg"></i>
+ <span class="text-[10px]">寫筆記</span>
+ </button>
+ <button id="nav-desktop-pet" onclick="switchTab('pet')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 hover:text-shinto transition py-2 w-full border-l-2 border-transparent">
+ <i class="fa-solid fa-paw text-lg"></i>
+ <span class="text-[10px]">小寵物</span>
+ </button>
+ <button id="nav-desktop-gacha" onclick="switchTab('gacha')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 hover:text-shinto transition py-2 w-full border-l-2 border-transparent">
+ <i class="fa-solid fa-ticket text-lg"></i>
+ <span class="text-[10px]">神佛扭蛋</span>
+ </button>
+ <button id="nav-desktop-dialect" onclick="switchTab('dialect')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 hover:text-shinto transition py-2 w-full border-l-2 border-transparent">
+ <i class="fa-solid fa-map-location-dot text-lg"></i>
+ <span class="text-[10px]">方言包</span>
+ </button>
+ <button id="nav-desktop-console" onclick="switchTab('console')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 hover:text-shinto transition py-2 w-full mt-auto border-l-2 border-transparent">
+ <i class="fa-solid fa-terminal text-lg"></i>
+ <span class="text-[10px]">同步終端</span>
+ </button>
+ </nav>
+
+ <!-- MOBILE NAVIGATION BOTTOM TAB BAR -->
+ <nav class="md:hidden flex bg-charcoal/95 backdrop-blur border-t border-gray-800 fixed bottom-0 left-0 right-0 h-16 justify-around items-center z-40 px-2 shadow-lg">
+ <button id="nav-mobile-study" onclick="switchTab('study')" class="nav-btn-mobile active flex flex-col items-center gap-0.5 text-shinto py-1 px-3">
+ <i class="fa-solid fa-book-open-reader text-lg"></i>
+ <span class="text-[9px] font-medium">學習</span>
+ </button>
+ <button id="nav-mobile-notes" onclick="switchTab('notes')" class="nav-btn-mobile flex flex-col items-center gap-0.5 text-gray-400 py-1 px-3">
+ <i class="fa-solid fa-camera-retro text-lg"></i>
+ <span class="text-[9px] font-medium">筆記</span>
+ </button>
+ <button id="nav-mobile-pet" onclick="switchTab('pet')" class="nav-btn-mobile flex flex-col items-center gap-0.5 text-gray-400 py-1 px-3">
+ <i class="fa-solid fa-paw text-lg"></i>
+ <span class="text-[9px] font-medium">寵物</span>
+ </button>
+ <button id="nav-mobile-gacha" onclick="switchTab('gacha')" class="nav-btn-mobile flex flex-col items-center gap-0.5 text-gray-400 py-1 px-3">
+ <i class="fa-solid fa-ticket text-lg"></i>
+ <span class="text-[9px] font-medium">扭蛋</span>
+ </button>
+ <button id="nav-mobile-dialect" onclick="switchTab('dialect')" class="nav-btn-mobile flex flex-col items-center gap-0.5 text-gray-400 py-1 px-3">
+ <i class="fa-solid fa-map-location-dot text-lg"></i>
+ <span class="text-[9px] font-medium">方言</span>
+ </button>
+ </nav>
+
+ <!-- MAIN CONTAINER -->
+ <main class="flex-1 p-4 md:p-6 max-w-5xl mx-auto w-full">
+
+ <!-- TAB 1: STUDY MODULE -->
+ <section id="tab-study" class="tab-content block space-y-6">
+ <div class="grid grid-cols-3 gap-3 bg-charcoal p-3.5 rounded-xl border border-gray-800 text-center">
+ <div>
+ <span class="text-[10px] text-gray-400 uppercase tracking-wider block">今日待複習</span>
+ <span id="dueCount" class="text-xl font-bold text-shinto">3</span>
+ </div>
+ <div class="border-x border-gray-800">
+ <span class="text-[10px] text-gray-400 uppercase tracking-wider block">已學字卡</span>
+ <span id="totalCardsCount" class="text-xl font-bold text-white">5</span>
+ </div>
+ <div>
+ <span class="text-[10px] text-gray-400 uppercase tracking-wider block">模擬平均穩定度</span>
+ <span id="avgStabilityDisplay" class="text-xl font-bold text-emerald-400">4.3d</span>
+ </div>
+ </div>
+
+ <div class="flex flex-col items-center">
+ <div class="w-full max-w-md mb-2 text-center">
+ <span class="text-[10px] text-yellow-500 bg-yellow-950/40 px-2 py-0.5 rounded font-medium border border-yellow-900/30">
+ ⚠️ 目前為 FSRS-like Prototype 演算法排程
+ </span>
+ </div>
+
+ <div id="flashcardBox" class="w-full max-w-md h-80 perspective-1000 cursor-pointer" onclick="flipCard()">
+ <div id="cardInner" class="w-full h-full transform-style-3d transition-transform duration-500 relative rounded-2xl border border-gray-700 shadow-2xl bg-gradient-to-br from-gray-900 to-black">
+
+ <!-- CARD FRONT -->
+ <div class="absolute inset-0 backface-hidden flex flex-col justify-between p-6">
+ <div class="flex items-center justify-between text-xs text-gray-400">
+ <span id="cardCategory" class="bg-gray-800 text-shinto px-2 py-0.5 rounded-md font-medium tracking-wide">N1 文法</span>
+ <span id="cardInterval" class="flex items-center gap-1"><i class="fa-solid fa-chart-line"></i> 記憶穩定度：3.4 天</span>
+ </div>
+
+ <div class="text-center space-y-2 my-auto">
+ <h2 id="cardKanji" class="text-4xl md:text-5xl font-bold text-white tracking-wide leading-tight">相まって</h2>
+ <p id="cardKana" class="text-lg text-gray-400">あいまって</p>
+ </div>
+
+ <div class="text-center text-xs text-gray-500 animate-pulse">
+ <i class="fa-solid fa-repeat"></i> 點擊卡牌翻面查看中文釋義與例句
+ </div>
+ </div>
+
+ <!-- CARD BACK -->
+ <div class="absolute inset-0 backface-hidden rotate-y-180 flex flex-col justify-between p-6 bg-gradient-to-br from-charcoal to-gray-950 rounded-2xl">
+ <div class="flex items-center justify-between text-xs">
+ <span class="text-emerald-400 font-bold bg-emerald-950/50 border border-emerald-900/50 px-2.5 py-0.5 rounded-md">釋義 (模擬)</span>
+ <button onclick="simulateTTS(event)" class="text-gray-400 hover:text-shinto p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition" title="聽音頻">
+ <i id="audioBtnIcon" class="fa-solid fa-volume-high"></i>
+ </button>
+ </div>
+
+ <div class="space-y-4 my-auto overflow-y-auto pr-1">
+ <h3 id="cardTranslation" class="text-lg text-white font-bold border-l-2 border-shinto pl-2">與...相結合、再加上</h3>
+ <div class="bg-black/30 p-3 rounded-lg border border-gray-800 space-y-2">
+ <p class="text-[10px] uppercase text-gray-500 font-bold tracking-wider">情境雙語例句</p>
+ <p id="cardContextSentence" class="text-sm font-medium text-white leading-relaxed">実力と幸運が相まって、彼は成功を収めた。</p>
+ <p id="cardContextTranslation" class="text-xs text-gray-400">實力與好運相結合，使他獲得了成功。</p>
+ </div>
+ </div>
+
+ <div class="text-center text-xs text-gray-500">
+ <i class="fa-solid fa-repeat"></i> 點擊卡牌翻回正面
+ </div>
+ </div>
+
+ </div>
+ </div>
+
+ <!-- FSRS Feedback Panel -->
+ <div id="fsrsControls" class="w-full max-w-md mt-6 bg-charcoal rounded-xl border border-gray-800 p-4 space-y-3">
+ <p class="text-center text-xs text-gray-400">您的回想狀況如何？系統會自動依遺忘曲線安排下次複習</p>
+ <div class="grid grid-cols-4 gap-2">
+ <button onclick="submitReview(1)" class="flex flex-col items-center justify-center py-2.5 rounded-lg bg-red-950/50 border border-red-900/50 hover:bg-red-900 text-red-400 transition">
+ <span class="text-xs font-bold">1: 忘記</span>
+ <span class="text-[9px] opacity-75">10 分鐘內</span>
+ </button>
+ <button onclick="submitReview(2)" class="flex flex-col items-center justify-center py-2.5 rounded-lg bg-amber-950/50 border border-amber-900/50 hover:bg-amber-900 text-amber-400 transition">
+ <span class="text-xs font-bold">2: 困難</span>
+ <span class="text-[9px] opacity-75">12 小時內</span>
+ </button>
+ <button onclick="submitReview(3)" class="flex flex-col items-center justify-center py-2.5 rounded-lg bg-blue-950/50 border border-blue-900/50 hover:bg-blue-900 text-blue-400 transition">
+ <span class="text-xs font-bold">3: 良好</span>
+ <span class="text-[9px] opacity-75">1.5 天後</span>
+ </button>
+ <button onclick="submitReview(4)" class="flex flex-col items-center justify-center py-2.5 rounded-lg bg-emerald-950/50 border border-emerald-900/50 hover:bg-emerald-900 text-emerald-400 transition">
+ <span class="text-xs font-bold">4: 簡單</span>
+ <span class="text-[9px] opacity-75">4 天後</span>
+ </button>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- TAB 2: MULTIMODAL NOTES -->
+ <section id="tab-notes" class="tab-content hidden space-y-6">
+ <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+ <div>
+ <h2 class="text-xl font-bold text-white">日本見聞即時採集</h2>
+ <p class="text-xs text-gray-400">
+ 模擬上傳旅行照片、路標、菜單，AI 將自動提煉成文法生字卡。
+ <span class="text-red-400 font-semibold">(目前為 Mock 原型概念示範)</span>
+ </p>
+ </div>
+ <button onclick="openModal('addNoteModal')" class="bg-shinto text-white hover:bg-shinto/90 transition text-xs px-4 py-2 rounded-lg font-medium flex items-center gap-2">
+ <i class="fa-solid fa-pen-nib"></i> 紀錄見聞 / 模擬打卡
+ </button>
+ </div>
+
+ <div id="notesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <!-- Notes list safely populated by JavaScript standard DOM APIs -->
+ </div>
+ </section>
+
+ <!-- TAB 3: PET COMPANION -->
+ <section id="tab-pet" class="tab-content hidden space-y-6">
+ <div class="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-2xl p-6 relative overflow-hidden flex flex-col items-center text-center">
+ <div class="absolute -right-10 -bottom-10 opacity-5 text-gray-100 pointer-events-none">
+ <i class="fa-solid fa-torii-gate text-9xl"></i>
+ </div>
+
+ <div class="relative w-44 h-44 mb-4">
+ <span class="absolute -top-1 -right-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+ <i class="fa-solid fa-heart animate-pulse"></i> 好感 <span id="petAffinity">42</span>
+ </span>
+ <svg id="kawaiiPet" class="w-full h-full" viewBox="0 0 100 100">
+ <defs>
+ <radialGradient id="cheeks" cx="50%" cy="50%" r="50%">
+ <stop offset="0%" stop-color="#FFA4A4" stop-opacity="0.8"/>
+ <stop offset="100%" stop-color="#FFA4A4" stop-opacity="0"/>
+ </radialGradient>
+ </defs>
+ <path d="M25 35 Q15 15 35 25 Z" fill="#E4E4E9" stroke="#2E2E38" stroke-width="2"/>
+ <path d="M75 35 Q85 15 65 25 Z" fill="#E4E4E9" stroke="#2E2E38" stroke-width="2"/>
+ <path d="M26 33 Q18 20 32 26 Z" fill="#FFA4A4"/>
+ <path d="M74 33 Q82 20 68 26 Z" fill="#FFA4A4"/>
+ <path d="M15 75 Q5 85 10 95 Q25 90 20 78 Z" fill="#D11A2A" class="origin-bottom-right" style="animation: pulse-gold 3s infinite ease-in-out;"/>
+ <ellipse cx="50" cy="65" rx="35" ry="28" fill="#E4E4E9" stroke="#2E2E38" stroke-width="2"/>
+ <ellipse cx="50" cy="65" rx="20" ry="24" fill="#FFFFFF"/>
+ <ellipse cx="50" cy="45" rx="30" ry="25" fill="#E4E4E9" stroke="#2E2E38" stroke-width="2"/>
+ <path d="M23 41 C35 33 65 33 77 41" stroke="#D11A2A" stroke-width="4" fill="none"/>
+ <circle cx="50" cy="36" r="3" fill="#FFFFFF"/>
+ <g id="petEyes">
+ <path d="M38 45 Q42 41 46 45" stroke="#2E2E38" stroke-width="2.5" fill="none"/>
+ <path d="M54 45 Q58 41 62 45" stroke="#2E2E38" stroke-width="2.5" fill="none"/>
+ </g>
+ <circle cx="34" cy="50" r="5" fill="url(#cheeks)"/>
+ <circle cx="66" cy="50" r="5" fill="url(#cheeks)"/>
+ <path d="M50 48 L48 50 L52 50 Z" fill="#2E2E38"/>
+ <path d="M46 52 Q50 54 50 52 Q50 54 54 52" stroke="#2E2E38" stroke-width="2" fill="none"/>
+ </svg>
+ </div>
+
+ <div class="space-y-1 mb-4">
+ <h3 class="text-lg font-bold text-white flex items-center justify-center gap-1.5">
+ 小桃ちゃん (Momo)
+ <span class="text-xs bg-moss text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-md font-normal">狀態: 喜悅 (模擬)</span>
+ </h3>
+ <p class="text-xs text-gray-400">正在用您已模擬解鎖的【關西腔】與您打招呼</p>
+ </div>
+
+ <div class="w-full max-w-md bg-charcoal rounded-2xl border border-gray-800 p-4 text-left relative space-y-2">
+ <div class="absolute left-1/2 -top-2 transform -translate-x-1/2 w-4 h-4 bg-charcoal border-l border-t border-gray-800 rotate-45"></div>
+ <div class="flex items-center justify-between text-[10px] text-gray-500">
+ <span>寵物方言問候 Prototype</span>
+ <span class="text-goldfoil font-bold cursor-pointer hover:underline text-[10px]" onclick="addDialogueToFSRS()">
+ <i class="fa-solid fa-circle-plus"></i> 模擬轉入字卡庫
+ </span>
+ </div>
+ <p id="petGreetingText" class="text-white font-bold leading-relaxed text-sm">「おはようさん！今日もええ感じやで！」</p>
+ <p id="petGreetingTranslation" class="text-xs text-gray-400">「早安呀！今天感覺也超棒的！」</p>
+ </div>
+
+ <div class="flex gap-2 w-full max-w-md mt-4 justify-center">
+ <button onclick="interactWithPet('feed')" class="flex-1 bg-moss/20 border border-moss text-emerald-400 hover:bg-moss/40 transition text-xs py-2 rounded-lg font-medium">
+ <i class="fa-solid fa-cookie"></i> 模擬餵食
+ </button>
+ <button onclick="interactWithPet('rub')" class="flex-1 bg-shinto/10 border border-shinto/30 text-shinto hover:bg-shinto/20 transition text-xs py-2 rounded-lg font-medium">
+ <i class="fa-solid fa-hands"></i> 模擬撫摸 (+5 好感)
+ </button>
+ </div>
+ </div>
+ </section>
+
+ <!-- TAB 4: GACHA SYSTEM -->
+ <section id="tab-gacha" class="tab-content hidden space-y-6">
+ <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+ <!-- Gacha Machine -->
+ <div class="md:col-span-5 bg-charcoal rounded-2xl border border-gray-800 p-5 flex flex-col items-center relative text-center">
+ <div class="absolute top-2 left-2 bg-gray-800 text-goldfoil text-[10px] font-bold px-2 py-0.5 rounded">
+ 一抽 / 10 點
+ </div>
+
+ <h3 class="text-white font-bold text-base mb-1">神佛地區限定扭蛋 (模擬)</h3>
+ <p class="text-[10px] text-gray-400 mb-4">累積 FSRS 學習模擬點數，解鎖地區方言與古語稱號</p>
+
+ <div class="w-48 h-56 relative mb-4">
+ <svg class="w-full h-full" viewBox="0 0 100 120">
+ <rect x="15" y="10" width="70" height="100" rx="10" fill="#2E2E38" stroke="#1A1A1E" stroke-width="3"/>
+ <rect x="20" y="15" width="60" height="50" rx="5" fill="#1E1E24"/>
+ <circle cx="35" cy="30" r="6" fill="#D11A2A"/>
+ <circle cx="50" cy="25" r="6" fill="#D4AF37"/>
+ <circle cx="65" cy="35" r="6" fill="#3B82F6"/>
+ <circle cx="45" cy="40" r="6" fill="#10B981"/>
+ <circle cx="58" cy="30" r="6" fill="#8B5CF6"/>
+ <circle cx="50" cy="90" r="10" fill="#1A1A1E"/>
+ <circle cx="50" cy="73" r="6" fill="#9CA3AF" class="cursor-pointer hover:fill-goldfoil transition" onclick="triggerGacha()"/>
+ <line x1="50" y1="69" x2="50" y2="77" stroke="#1F2937" stroke-width="2"/>
+ </svg>
+ <div id="gachaCapFlash" class="absolute inset-0 bg-goldfoil/10 opacity-0 rounded-2xl transition-all duration-300 pointer-events-none"></div>
+ </div>
+
+ <button onclick="triggerGacha()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-3 rounded-xl font-bold text-sm tracking-wide shadow-lg transition-all duration-200">
+ <i class="fa-solid fa-repeat"></i> 扭一發 (抽好運)
+ </button>
+ </div>
+
+ <!-- Achievements Wall -->
+ <div class="md:col-span-7 bg-charcoal rounded-2xl border border-gray-800 p-5 space-y-4">
+ <h3 class="text-white font-bold text-base flex items-center gap-2">
+ <i class="fa-solid fa-trophy text-goldfoil"></i> 已獲得成就與稱號 (模擬)
+ </h3>
+
+ <div class="space-y-2 max-h-[340px] overflow-y-auto pr-1" id="achievementsContainer">
+ <!-- Achievements safely rendered by textContent DOM creator -->
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- TAB 5: DIALECT PACKAGES -->
+ <section id="tab-dialect" class="tab-content hidden space-y-6">
+ <div class="flex justify-between items-center">
+ <div>
+ <h2 class="text-xl font-bold text-white">地區限定方言與諺語地圖 (模擬)</h2>
+ <p class="text-xs text-gray-400">當您在日本實地模擬打卡後，會解鎖特定腔調與俗語生字卡</p>
+ </div>
+ </div>
+
+ <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+ <div class="md:col-span-2 bg-charcoal rounded-2xl border border-gray-800 p-4 relative overflow-hidden h-72">
+ <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#2a2a2a_1px,transparent_1px)] [background-size:16px_16px]"></div>
+ <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-2">虛擬日本足跡打卡地圖 Mock</p>
+
+ <div class="w-full h-full flex items-center justify-center relative">
+ <svg class="w-full h-full max-h-56" viewBox="0 0 300 150">
+ <path d="M220,15 L260,10 L270,30 L240,40 L210,30 Z" fill="#4A5D4E" opacity="0.4" stroke="#2E2E38"/>
+ <text x="235" y="27" fill="#8B9A90" font-size="6">北海道</text>
+ <path d="M120,80 C150,60 190,40 220,41 C210,65 190,80 160,95 C140,110 120,95 120,80 Z" fill="#4A5D4E" stroke="#2E2E38"/>
+ <circle cx="145" cy="85" r="4" fill="#D11A2A" class="animate-ping"/>
+ <circle cx="145" cy="85" r="3" fill="#D11A2A"/>
+ <text x="145" y="79" fill="#FFF" font-size="6" font-weight="bold">關西腔 (已模擬解鎖)</text>
+ <circle cx="190" cy="55" r="3" fill="#D4AF37"/>
+ <text x="190" y="49" fill="#D4AF37" font-size="6">東北腔 (鎖定中)</text>
+ <path d="M50,130 L65,125 L60,135 Z" fill="#4A5D4E" opacity="0.4"/>
+ <circle cx="58" cy="130" r="3" fill="#D4AF37"/>
+ <text x="50" y="122" fill="#D4AF37" font-size="6">沖繩腔 (鎖定中)</text>
+ </svg>
+ </div>
+ </div>
+
+ <div class="bg-charcoal rounded-2xl border border-gray-800 p-4 space-y-3 flex flex-col justify-between">
+ <div class="space-y-2">
+ <span class="text-[10px] uppercase font-bold text-shinto bg-shinto/10 px-2 py-0.5 rounded">當前特產方言 (模擬)</span>
+ <h4 class="text-base font-bold text-white">關西地區限定 (Kansai-ben)</h4>
+ <p class="text-xs text-gray-400">關西腔獨具熱情幽默，解鎖後寵物會改用語調輕快的關西語和您打招呼！</p>
+
+ <div class="bg-black/30 p-2.5 rounded-lg border border-gray-950 text-xs space-y-1.5">
+ <p class="text-goldfoil font-bold">解鎖諺語一例：</p>
+ <p class="text-white font-bold">やってみなはれ</p>
+ <p class="text-gray-400 text-[10px]">（標準語：案ずるより産むが易し）</p>
+ <p class="text-gray-400">中文：與其擔心不如放手去做吧！</p>
+ </div>
+ </div>
+
+ <button onclick="simulateCheckin('Kansai')" class="w-full bg-moss/20 border border-moss text-emerald-400 hover:bg-moss/35 transition py-2 rounded-lg text-xs font-bold">
+ <i class="fa-solid fa-location-crosshairs"></i> 模擬在日本關西打卡
+ </button>
+ </div>
+ </div>
+ </section>
+
+ <!-- TAB 6: API CONFIG & OFFLINE QUEUE TERMINAL -->
+ <section id="tab-console" class="tab-content hidden space-y-6">
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+ <!-- API Setting form -->
+ <div class="bg-charcoal rounded-2xl border border-gray-800 p-5 space-y-4">
+ <h3 class="text-white font-bold text-base flex items-center gap-2">
+ <i class="fa-solid fa-shield-halved text-shinto"></i> Firebase Web Config (公開配置項目)
+ </h3>
+ <p class="text-xs text-gray-400">此配置屬於前端公開參數。請注意：MiniMax 私密金鑰絕對禁止在此處輸入，必須完全隔離在後端安全代理中。</p>
+
+ <div class="space-y-3">
+ <div>
+ <label class="block text-xs text-gray-400 mb-1">Firebase API Key (前端公開 Web SDK 金鑰)</label>
+ <input type="text" id="firebaseApiKeyInput" placeholder="AIzaSy... (此處非密碼欄位)" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-shinto focus:outline-none">
+ </div>
+ <div class="grid grid-cols-2 gap-2">
+ <div>
+ <label class="block text-xs text-gray-400 mb-1">ProjectId</label>
+ <input type="text" id="firebaseProjIdInput" placeholder="my-japan" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-shinto focus:outline-none">
+ </div>
+ <div>
+ <label class="block text-xs text-gray-400 mb-1">StorageBucket</label>
+ <input type="text" id="firebaseBucketInput" placeholder="my-japan.appspot.com" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-shinto focus:outline-none">
+ </div>
+ </div>
+ <div class="bg-yellow-950/20 border border-yellow-900/30 p-2.5 rounded-lg text-[10px] text-yellow-500">
+ <i class="fa-solid fa-lock"></i> <strong>安全性與隱私規範</strong>：MiniMax API Keys/Tokens 以及服務帳戶 (Service Account) 的私密金鑰應加入 `.gitignore` 說明，前端僅傳送非敏感、已過濾之請求至代理後端 (Firebase Functions / Cloudflare Workers)。
+ </div>
+ <button onclick="saveConfigMock()" class="w-full bg-shinto text-white hover:bg-shinto/90 py-2 rounded-lg text-xs font-bold transition">
+ 模擬儲存配置
+ </button>
+ </div>
+ </div>
+
+ <!-- Offline Write Queue Console -->
+ <div class="bg-charcoal rounded-2xl border border-gray-800 p-5 space-y-4 flex flex-col justify-between">
+ <div>
+ <h3 class="text-white font-bold text-base flex items-center gap-2">
+ <i class="fa-solid fa-terminal text-emerald-400"></i> 本地寫入佇列 (模擬 IndexedDB)
+ </h3>
+ <p class="text-xs text-gray-400 mb-3">當處於模擬離線狀態時，修改會自動列入佇列，並依 Last Write Wins 策略在恢復線上後模擬同步。</p>
+
+ <!-- Console logging window -->
+ <div id="queueLogWindow" class="bg-black/50 border border-gray-950 p-3 rounded-lg font-mono text-[10px] text-emerald-400 space-y-1.5 h-48 overflow-y-auto">
+ <!-- Populated completely securely by DOM creators -->
+ </div>
+ </div>
+
+ <div class="flex gap-2">
+ <button onclick="simulateOfflineWrite()" class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 rounded-lg text-xs font-medium transition">
+ 模擬離線寫入
+ </button>
+ <button onclick="forceSyncNow()" class="flex-1 bg-emerald-950 border border-emerald-800 hover:bg-emerald-900 text-emerald-400 py-2 rounded-lg text-xs font-medium transition">
+ 模擬強制同步
+ </button>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ </main>
+
+ <!-- TOAST NOTIFICATION CONTAINER -->
+ <div id="toastContainer" class="fixed bottom-20 md:bottom-auto md:top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)] md:w-full pointer-events-none">
+ <!-- Dynamic Toast nodes are rendered here securely -->
+ </div>
+
+ <!-- MODAL: ADD NOTE -->
+ <div id="addNoteModal" class="fixed inset-0 z-50 bg-black/75 hidden items-center justify-center p-4">
+ <div class="bg-charcoal rounded-2xl border border-gray-800 max-w-lg w-full overflow-hidden shadow-2xl relative">
+ <button onclick="closeModal('addNoteModal')" class="absolute top-3 right-3 text-gray-400 hover:text-white p-1 rounded-lg">
+ <i class="fa-solid fa-xmark text-lg"></i>
+ </button>
+ <div class="p-5 border-b border-gray-800 bg-gray-950">
+ <h3 class="text-base font-bold text-white flex items-center gap-2">
+ <i class="fa-solid fa-camera-retro text-shinto"></i> 即時見聞紀錄 / 地理打卡 (模擬)
+ </h3>
+ <p class="text-[10px] text-gray-400">寫下見聞，亦可模擬上傳相片交由 AI 解析為日語字卡</p>
+ </div>
+ <div class="p-5 space-y-4">
+ <div>
+ <label class="block text-xs text-gray-400 mb-1">筆記/見聞標題</label>
+ <input type="text" id="noteTitleInput" placeholder="例：京都伏見稻荷千本鳥居之美" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-shinto focus:outline-none">
+ </div>
+ <div>
+ <label class="block text-xs text-gray-400 mb-1">見聞內容</label>
+ <textarea id="noteContentInput" rows="3" placeholder="在這裡記錄您在當地的文化體會或日文單詞（支援 Markdown 語法）..." class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-shinto focus:outline-none"></textarea>
+ </div>
+
+ <div class="grid grid-cols-2 gap-3">
+ <div>
+ <label class="block text-xs text-gray-400 mb-1">附帶旅遊相片 (模擬圖片)</label>
+ <select id="noteImageSelect" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-2.5 py-2 text-xs text-white focus:border-shinto focus:outline-none">
+ <option value="">（無相片）</option>
+ <option value="kyoto">京都宇治川大鳥居.jpg</option>
+ <option value="osaka">大阪道頓堀霓虹燈招牌.jpg</option>
+ <option value="okinawa">沖繩那霸首里城城門.jpg</option>
+ </select>
+ </div>
+ <div>
+ <label class="block text-xs text-gray-400 mb-1">地理坐標 (模擬自動獲取)</label>
+ <div class="flex gap-1.5">
+ <input type="text" id="noteGeoInput" placeholder="自動定位中..." readonly class="w-full bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2 text-xs text-gray-400 focus:outline-none">
+ <button onclick="getSimulatedLocation()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 p-2 rounded-lg text-xs" title="手動定位">
+ <i class="fa-solid fa-location-dot"></i>
+ </button>
+ </div>
+ </div>
+ </div>
+
+ <div class="bg-black/30 p-2.5 rounded-lg border border-gray-950 text-[10px] text-amber-300">
+ <i class="fa-solid fa-wand-magic-sparkles"></i> <strong>模擬 AI 增強模式</strong>：提交後，模擬安全中轉代理將傳送模擬相片與日記，自動為您提取新單字並解鎖原創 BGM 模擬。
+ </div>
+ </div>
+ <div class="p-5 border-t border-gray-800 bg-gray-950/50 flex justify-end gap-2">
+ <button onclick="closeModal('addNoteModal')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-4 py-2 rounded-lg font-medium">
+ 取消
+ </button>
+ <button onclick="submitNote()" class="bg-shinto hover:bg-shinto/90 text-white text-xs px-4 py-2 rounded-lg font-medium">
+ 提交並模擬 AI 處理
+ </button>
+ </div>
+ </div>
+ </div>
+
+ <!-- INITIALIZATION & JAVASCRIPT CORE -->
+ <script>
+ /*
+ ================================================================================
+ PHASE 2 - SECURITY PROXY API CONTRACT DRAFT (PROPOSAL)
+ ================================================================================
+
+ All client-to-AI requests must go through the Serverless Security Proxy.
+ Direct access to MiniMax API endpoints from client side is strictly prohibited.
+
+ General Guards & Rate Limits:
+ - Per-User Monthly Cost Cap: $10.00 USD.
+ - Per-IP Burst Limit: 60 requests per minute.
+ - Max Upload File Size: Image: 10MB, Audio: 20MB.
+ - Allowed MIME Whitelist:
+ - Images: ["image/jpeg", "image/png", "image/webp"]
+ - Audio: ["audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg", "audio/webm"]
+ - Idempotency Guarantee: Client must pass UUIDv4 in Header: "X-Idempotency-Key"
+ to prevent duplicate processing of retries.
+ - Auth Synchronization: Token verified at Proxy; the Firebase UID must strictly
+ match the owner 'userId' in the Firestore document database payload: auth.currentUser.uid === db.userId.
+
+ Error Schemas (JSON Output):
+ - 401 Unauthorized:
+ { "error": { "code": "UNAUTHORIZED", "message": "Missing or invalid Firebase ID Token." } }
+ - 403 Forbidden:
+ { "error": { "code": "FORBIDDEN", "message": "Identity mismatch. Firebase UID does not match document owner." } }
+ - 413 Payload Too Large:
+ { "error": { "code": "PAYLOAD_TOO_LARGE", "message": "Uploaded asset exceeds size limit (Max: 10MB Image / 20MB Audio)." } }
+ - 429 Too Many Requests:
+ { "error": { "code": "RATE_LIMIT_EXCEEDED", "message": "Burst limit reached. Please wait and try again." } }
+
+ 1. POST /api/minimax/vision-to-cards
+ - Description: Extract grammar, vocabulary, and cultural context from travel pictures.
+ - Authentication: Firebase ID Token (Authorization: Bearer <ID_TOKEN>). Verified at proxy.
+ - Rate Limit: 10 requests per user per hour.
+ - Input (Multipart/Form-Data):
+ {
+ "image": File (binary),
+ "userText": String (Optional user context)
+ }
+ - Quota Guard: Validates that the active user's monthly upload is under 150 requests.
+ - Output (JSON, 200 OK):
+ {
+ "success": true,
+ "cards": [
+ {
+ "kanji": "古風",
+ "kana": "こふう",
+ "translation": "古色古香、具有古代風貌的",
+ "contextSentence": "その古い神社はとても古風な趣がある。",
+ "contextTranslation": "那座古老的神社有著極具古色古香的雅致風貌。"
+ }
+ ]
+ }
+
+ 2. POST /api/minimax/tts
+ - Description: Synchronous Text-to-Audio conversion for offline-caching.
+ - Authentication: Firebase ID Token (Authorization: Bearer <ID_TOKEN>).
+ - Rate Limit: 100 requests per user per day.
+ - Input (JSON):
+ {
+ "text": "実力と幸運が相まって、彼は成功を収めた。",
+ "voiceModel": "speech-2.8-hd",
+ "format": "mp3"
+ }
+ - Output (JSON, 200 OK):
+ {
+ "success": true,
+ "audioUrl": "https://storage.googleapis.com/my-japan.appspot.com/tts/audio_cache_xyz.mp3"
+ }
+
+ 3. POST /api/minimax/music
+ - Description: Japanese folk style BGM creation for travel blogs.
+ - Authentication: Firebase ID Token (Authorization: Bearer <ID_TOKEN>).
+ - Rate Limit: 2 requests per user per day.
+ - Input (JSON):
+ {
+ "prompt": "Traditional Japanese Folk, Shakuhachi, Ambient",
+ "blogContent": "今日來到千本鳥居。滿山硃紅神門..."
+ }
+ - Output (JSON, 200 OK):
+ {
+ "success": true,
+ "bgmUrl": "https://storage.googleapis.com/my-japan.appspot.com/bgm/music_xyz.mp3"
+ }
+ ================================================================================
+ */
+
+ // FSRS-like Simplified Prototype Parameters
+ const targetRecallRate = 0.9;
+ const decay = -0.5;
+ const factor = 19.0 / 3.0;
+
+ // Public App State
+ let gachaPoints = 150;
+ let onlineMode = true;
+ let currentTab = 'study';
+ let isCardFlipped = false;
+ let activeCardIndex = 0;
+ let petAffinity = 42;
+ let unlockedDialects = ['Kansai'];
+
+ // Study Cards Deck (Initial Mock state)
+ let studyDeck = [
+ {
+ cardId: "card_01",
+ category: "N1_grammar",
+ kanji: "相まって",
+ kana: "あいまって",
+ translation: "與...相結合、再加上",
+ contextSentence: "実力と幸運が相まって、彼は成功を収めた。",
+ contextTranslation: "實力與好運相結合，使他獲得了成功。",
+ stability: 3.4,
+ difficulty: 4.5,
+ repetitions: 2,
+ lapses: 0,
+ nextReview: Date.now()
+ },
+ {
+ cardId: "card_02",
+ category: "N1_vocab",
+ kanji: "余儀なくされる",
+ kana: "よぎなくされる",
+ translation: "被迫無奈地進行",
+ contextSentence: "悪天候のため、旅行の日程変更を余儀なくされた。",
+ contextTranslation: "由於惡劣天氣，旅遊日程被迫進行了變更。",
+ stability: 1.2,
+ difficulty: 5.0,
+ repetitions: 1,
+ lapses: 1,
+ nextReview: Date.now() - 1000
+ },
+ {
+ cardId: "card_03",
+ category: "N2_vocab",
+ kanji: "極まりない",
+ kana: "きわまりない",
+ translation: "極其、無以復加",
+ contextSentence: "彼の無礼な態度は、不愉快極まりない。",
+ contextTranslation: "他那無禮的態度，真是極其不愉快。",
+ stability: 12.5,
+ difficulty: 3.2,
+ repetitions: 5,
+ lapses: 0,
+ nextReview: Date.now() + 86400000
+ },
+ {
+ cardId: "card_04",
+ category: "dialect_kansai",
+ kanji: "やってみなはれ",
+ kana: "やってみなはれ",
+ translation: "與其擔心不如放手去做！（關西特色諺語）",
+ contextSentence: "案ずるより産むが易しや。やってみなはれ！",
+ contextTranslation: "與其在那邊窮擔心，倒不如放手做做看吧！",
+ stability: 0.5,
+ difficulty: 4.0,
+ repetitions: 0,
+ lapses: 0,
+ nextReview: Date.now()
+ }
+ ];
+
+ // Travel Notes (Preloaded Mock state)
+ let travelNotes = [
+ {
+ noteId: "note_01",
+ title: "京都伏見稻荷神隱隨感",
+ content: "今日來到千本鳥居。滿山硃紅神門，與神祕古杉相まって，令人深感造化之妙。在此記錄下生字「相まって」。",
+ tags: ["#京都避暑", "#N1文法"],
+ imageUrl: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80",
+ latitude: 34.9671,
+ longitude: 135.7727,
+ createdAt: new Date(Date.now() - 86400000 * 2).toLocaleDateString()
+ },
+ {
+ noteId: "note_02",
+ title: "大阪道頓堀深夜探秘",
+ content: "霓虹看板閃爍。實地打卡解鎖了關西地區方言包！聽小吃攤老闆説「やってみなはれ」，原來與文法「案ずるより産むが易し」是同義的，真是接地氣！",
+ tags: ["#大阪美食", "#方言解鎖"],
+ imageUrl: "https://images.unsplash.com/photo-1590250553826-ac32537b420e?auto=format&fit=crop&w=600&q=80",
+ latitude: 34.6687,
+ longitude: 135.5013,
+ createdAt: new Date(Date.now() - 86400000 * 1).toLocaleDateString()
+ }
+ ];
+
+ // Achievements state
+ let achievements = [
+ { achievementId: "ach_01", title: "神社巡禮者", desc: "模擬打卡解鎖日本神社見聞與文化歷史", unlocked: true },
+ { achievementId: "ach_02", title: "關西方言達人", desc: "模擬在大阪打卡並在 FSRS 熟練複習關西諺語", unlocked: true },
+ { achievementId: "ach_03", title: "もののあはれを知る者", desc: "在扭蛋獎池解鎖超稀有古語名號（神之造詣）", unlocked: false },
+ { achievementId: "ach_04", title: "不撓不屈", desc: "FSRS 單卡複習重試次數超過 10 次", unlocked: false }
+ ];
+
+ // Simulated Sync Queue
+ let syncQueue = [];
+
+ // ON APP LOAD
+ window.onload = function() {
+ // Load state from localStorage if exists
+ if (localStorage.getItem('myjapan_gacha_points')) {
+ gachaPoints = parseInt(localStorage.getItem('myjapan_gacha_points'));
+ }
+ if (localStorage.getItem('myjapan_pet_affinity')) {
+ petAffinity = parseInt(localStorage.getItem('myjapan_pet_affinity'));
+ }
+ updateGachaDisplay();
+ updatePetAffinityDisplay();
+
+ // Populate DOM contents
+ renderDueStats();
+ renderActiveCard();
+ renderNotes();
+ renderAchievements();
+
+ // Initialize console window with clean, secure logging
+ const logWin = document.getElementById('queueLogWindow');
+ logWin.innerHTML = ''; // Start empty
+
+ addConsoleLog("系統初始化成功。PWA 記憶體模擬快取已開啟。");
+ addConsoleLog("已加載本地 FSRS 模擬字卡共計：4。");
+ addConsoleLog("網路狀態監聽中... 持續偵測同步狀態。");
+
+ lucide.createIcons();
+ };
+
+ // TAB NAVIGATION
+ function switchTab(tabId) {
+ currentTab = tabId;
+ document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+ document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+ // Update Desktop Side Navigation style
+ document.querySelectorAll('.nav-btn').forEach(btn => {
+ btn.classList.remove('text-shinto', 'border-shinto');
+ btn.classList.add('text-gray-400', 'border-transparent');
+ });
+ // Update Mobile Bottom Navigation style
+ document.querySelectorAll('.nav-btn-mobile').forEach(btn => {
+ btn.classList.remove('text-shinto');
+ btn.classList.add('text-gray-400');
+ });
+
+ // Highlight active side navigation
+ const activeDesktopBtn = document.getElementById(`nav-desktop-${tabId}`);
+ if (activeDesktopBtn) {
+ activeDesktopBtn.classList.add('text-shinto', 'border-shinto');
+ activeDesktopBtn.classList.remove('text-gray-400', 'border-transparent');
+ }
+
+ const activeMobileBtn = document.getElementById(`nav-mobile-${tabId}`);
+ if (activeMobileBtn) {
+ activeMobileBtn.classList.add('text-shinto');
+ activeMobileBtn.classList.remove('text-gray-400');
+ }
+ }
+
+ // FSRS-like Simplified Math Algorithm
+ function calculateNextReview(rating, stability, difficulty, reps) {
+ let nextIntervalDays = 1;
+ let updatedStability = stability;
+ let updatedDifficulty = difficulty;
+
+ if (rating === 1) { // Forgotten
+ updatedStability = Math.max(0.1, stability * 0.4);
+ updatedDifficulty = Math.min(10, difficulty + 1.5);
+ nextIntervalDays = 0.01;
+ } else { // Succeeded
+ let ratingFactor = 1.0;
+ if (rating === 2) ratingFactor = 0.8;
+ if (rating === 3) ratingFactor = 1.2;
+ if (rating === 4) ratingFactor = 2.0;
+
+ updatedStability = stability * (1 + factor * ratingFactor * Math.exp(decay));
+ updatedDifficulty = Math.max(1, difficulty + (rating === 2 ? 0.5 : (rating === 4 ? -0.5 : 0)));
+ nextIntervalDays = Math.max(1, Math.round(updatedStability * 9 * (1 / targetRecallRate - 1)));
+ }
+
+ return {
+ stability: parseFloat(updatedStability.toFixed(2)),
+ difficulty: parseFloat(updatedDifficulty.toFixed(2)),
+ interval: nextIntervalDays
+ };
+ }
+
+ // RENDER FSRS CARD PROGRESS STATS (Dynamic calculations)
+ function renderDueStats() {
+ let dueCount = 0;
+ const now = Date.now();
+ studyDeck.forEach(card => {
+ if (card.nextReview <= now) dueCount++;
+ });
+ document.getElementById('dueCount').textContent = dueCount;
+ document.getElementById('totalCardsCount').textContent = studyDeck.length;
+
+ const avgStability = (studyDeck.reduce((acc, c) => acc + c.stability, 0) / studyDeck.length).toFixed(1);
+ document.getElementById('avgStabilityDisplay').textContent = avgStability + "d";
+ }
+
+ // DISPLAY ACTIVE DUE FLASHCARD
+ function renderActiveCard() {
+ const now = Date.now();
+ let index = studyDeck.findIndex(c => c.nextReview <= now);
+ if (index === -1) {
+ index = 0;
+ }
+ activeCardIndex = index;
+ const card = studyDeck[index];
+
+ // Reset rotation state
+ isCardFlipped = false;
+ document.getElementById('cardInner').classList.remove('rotate-y-180');
+
+ // Populate Front and Back Data safely via textContent
+ document.getElementById('cardCategory').textContent = getCategoryName(card.category);
+
+ const cardIntEl = document.getElementById('cardInterval');
+ cardIntEl.textContent = ''; // clear
+ const intIcon = document.createElement('i');
+ intIcon.className = 'fa-solid fa-chart-line mr-1';
+ cardIntEl.appendChild(intIcon);
+ cardIntEl.appendChild(document.createTextNode(`記憶穩定度：${card.stability} 天`));
+
+ document.getElementById('cardKanji').textContent = card.kanji;
+ document.getElementById('cardKana').textContent = card.kana;
+ document.getElementById('cardTranslation').textContent = card.translation;
+ document.getElementById('cardContextSentence').textContent = card.contextSentence;
+ document.getElementById('cardContextTranslation').textContent = card.contextTranslation;
+ }
+
+ function getCategoryName(cat) {
+ const names = {
+ 'N1_grammar': 'N1 文法',
+ 'N1_vocab': 'N1 單字',
+ 'N2_vocab': 'N2 單字',
+ 'dialect_kansai': '關西方言'
+ };
+ return names[cat] || '特別字卡';
+ }
+
+ // FLIP CARD FUNCTIONALITY
+ function flipCard() {
+ isCardFlipped = !isCardFlipped;
+ const inner = document.getElementById('cardInner');
+ if (isCardFlipped) {
+ inner.classList.add('rotate-y-180');
+ } else {
+ inner.classList.remove('rotate-y-180');
+ }
+ }
+
+ // SUBMIT FSRS RATING REVIEW
+ function submitReview(rating) {
+ const card = studyDeck[activeCardIndex];
+ const result = calculateNextReview(rating, card.stability, card.difficulty, card.repetitions);
+
+ card.stability = result.stability;
+ card.difficulty = result.difficulty;
+ card.repetitions += (rating > 1 ? 1 : 0);
+ card.lapses += (rating === 1 ? 1 : 0);
+ card.nextReview = Date.now() + (result.interval * 24 * 60 * 60 * 1000);
+
+ changeGachaPoints(1);
+ showToast("字卡複習完成 (模擬)", `穩定度模擬調整為 ${result.stability} 天！ (+1 模擬點數)`, "shinto");
+
+ const payload = { cardId: card.cardId, stability: card.stability, difficulty: card.difficulty, updatedAt: Date.now() };
+ addToSyncQueue('UPDATE_CARD', payload);
+
+ renderDueStats();
+ renderActiveCard();
+ }
+
+ // TTS AUDIO SIMULATOR WITH COMPREHENSIVE FEEDBACK
+ function simulateTTS(event) {
+ event.stopPropagation(); // Avoid flipping card
+ const card = studyDeck[activeCardIndex];
+ const icon = document.getElementById('audioBtnIcon');
+
+ icon.className = 'fa-solid fa-spinner animate-spin text-shinto';
+
+ setTimeout(() => {
+ try {
+ const synth = window.speechSynthesis;
+ if (synth) {
+ const utterance = new SpeechSynthesisUtterance(card.kanji + '。' + card.contextSentence);
+ utterance.lang = 'ja-JP';
+ utterance.rate = 0.85;
+ synth.speak(utterance);
+ }
+ } catch(e) {
+ console.log("[Mock TTS fallback error]:", e);
+ }
+ icon.className = 'fa-solid fa-volume-high';
+ }, 600);
+ }
+
+ // RENDER TOURIST NOTES SECURELY (Strict textContent to eliminate XSS)
+ function renderNotes() {
+ const container = document.getElementById('notesContainer');
+ container.innerHTML = '';
+
+ travelNotes.forEach(note => {
+ // Card outer wrapper
+ const noteCard = document.createElement('div');
+ noteCard.className = 'bg-charcoal rounded-xl border border-gray-800 overflow-hidden flex flex-col md:flex-row h-full shadow-lg';
+
+ // Left Image divider
+ const imgDiv = document.createElement('div');
+ imgDiv.className = 'md:w-1/3 h-40 md:h-auto bg-cover bg-center';
+ imgDiv.style.backgroundImage = `url('${note.imageUrl}')`;
+ noteCard.appendChild(imgDiv);
+
+ // Right Info division
+ const infoDiv = document.createElement('div');
+ infoDiv.className = 'p-4 flex-1 flex flex-col justify-between space-y-3';
+
+ // Metadata row
+ const metaRow = document.createElement('div');
+ metaRow.className = 'flex items-center justify-between text-[10px] text-gray-500';
+
+ const dateSpan = document.createElement('span');
+ const dateIcon = document.createElement('i');
+ dateIcon.className = 'fa-solid fa-clock mr-1';
+ dateSpan.appendChild(dateIcon);
+ dateSpan.appendChild(document.createTextNode(note.createdAt));
+
+ const geoSpan = document.createElement('span');
+ const geoIcon = document.createElement('i');
+ geoIcon.className = 'fa-solid fa-location-dot text-shinto mr-1';
+ geoSpan.appendChild(geoIcon);
+ geoSpan.appendChild(document.createTextNode(`${note.latitude.toFixed(2)}, ${note.longitude.toFixed(2)}`));
+
+ metaRow.appendChild(dateSpan);
+ metaRow.appendChild(geoSpan);
+
+ // Title & Description
+ const textSection = document.createElement('div');
+ textSection.className = 'space-y-1';
+ textSection.appendChild(metaRow);
+
+ const titleH4 = document.createElement('h4');
+ titleH4.className = 'text-sm font-bold text-white tracking-wide';
+ titleH4.textContent = note.title;
+
+ const contentP = document.createElement('p');
+ contentP.className = 'text-xs text-gray-400 line-clamp-3';
+ contentP.textContent = note.content;
+
+ textSection.appendChild(titleH4);
+ textSection.appendChild(contentP);
+ infoDiv.appendChild(textSection);
+
+ // Footer section (Tags & Audio simulation actions)
+ const footerRow = document.createElement('div');
+ footerRow.className = 'flex items-center justify-between border-t border-gray-800/80 pt-2';
+
+ const tagsContainer = document.createElement('div');
+ tagsContainer.className = 'flex gap-1.5';
+ note.tags.forEach(tag => {
+ const tagBadge = document.createElement('span');
+ tagBadge.className = 'bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-[10px]';
+ tagBadge.textContent = tag;
+ tagsContainer.appendChild(tagBadge);
+ });
+
+ const musicBtn = document.createElement('button');
+ musicBtn.className = 'bg-amber-950/40 border border-amber-900/50 hover:bg-amber-900 text-amber-400 text-[10px] px-2 py-1 rounded-md flex items-center gap-1 transition';
+
+ const musicIcon = document.createElement('i');
+ musicIcon.className = 'fa-solid fa-music';
+ musicBtn.appendChild(musicIcon);
+ musicBtn.appendChild(document.createTextNode(' 意境 BGM (模擬)'));
+ musicBtn.onclick = function() { playMusicBGM(note.noteId); };
+
+ footerRow.appendChild(tagsContainer);
+ footerRow.appendChild(musicBtn);
+ infoDiv.appendChild(footerRow);
+
+ noteCard.appendChild(infoDiv);
+ container.appendChild(noteCard);
+ });
+ }
+
+ // SIMULATE JAPAN COMPOSER BGM CREATION
+ function playMusicBGM(noteId) {
+ showToast("模擬音樂創作", "已模擬調用後端代理呼叫 Music-2.6 接口。播放風格: Traditional Japanese Folk (Shakuhachi)", "goldfoil");
+ addConsoleLog(`[模擬音樂創作] 已模擬為日記生成專屬配樂 (44.1kHz, 256kbps)。`);
+ }
+
+ // ADD TRAVEL NOTE WITH MOCK AI MULTIMODAL EXTRACTION
+ function submitNote() {
+ const title = document.getElementById('noteTitleInput').value.trim();
+ const content = document.getElementById('noteContentInput').value.trim();
+ const imagePreset = document.getElementById('noteImageSelect').value;
+ const geoCoords = document.getElementById('noteGeoInput').value;
+
+ if (!title || !content) {
+ showToast("提示", "標題與見聞內容不能為空", "shinto");
+ return;
+ }
+
+ let lat = 35.6762, lng = 139.6503;
+ if (geoCoords && geoCoords.includes(',')) {
+ const parts = geoCoords.split(',');
+ lat = parseFloat(parts[0]);
+ lng = parseFloat(parts[1]);
+ }
+
+ let imgUrl = "https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80";
+ if (imagePreset === "kyoto") imgUrl = "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80";
+ if (imagePreset === "osaka") imgUrl = "https://images.unsplash.com/photo-1590250553826-ac32537b420e?auto=format&fit=crop&w=600&q=80";
+ if (imagePreset === "okinawa") imgUrl = "
+ // =============================================================================
+ // <<< TRUNCATION POINT (2026-06-19) >>>
+ // Original source ended at: `if (imagePreset === "okinawa") imgUrl = "`
+ // See TODO.md for list of missing JS handlers referenced from HTML events:
+ // toggleNetworkStatus, addDialogueToFSRS, interactWithPet, triggerGacha,
+ // simulateCheckin, saveConfigMock, simulateOfflineWrite, forceSyncNow,
+ // openModal, closeModal, getSimulatedLocation, showToast, addToSyncQueue,
+ // addConsoleLog, changeGachaPoints, updateGachaDisplay, updatePetAffinityDisplay,
+ // renderAchievements, the rest of submitNote, etc.
+ // =============================================================================
+ "https://images.unsplash.com/photo-1517411032315-54ef2cb783bb?auto=format&fit=crop&w=600&q=80";
+
+ // === Stubs for missing handlers (no-op or minimal so page renders) ===
+ function toggleNetworkStatus() { showToast("網路狀態", "切換線上/離線模擬 (stub)", "shinto"); }
+ function addDialogueToFSRS() { showToast("字卡庫", "模擬將對話加入 FSRS (stub)", "goldfoil"); }
+ function interactWithPet(action) {
+ if (action === 'rub') { petAffinity = Math.min(100, petAffinity + 5); updatePetAffinityDisplay(); showToast("互動", "撫摸 +5 好感 (模擬)", "shinto"); }
+ else { showToast("互動", "餵食 (模擬)", "moss"); }
+ }
+ function triggerGacha() {
+ if (gachaPoints < 10) { showToast("扭蛋", "模擬點數不足 (需要 10 點)", "amber"); return; }
+ gachaPoints -= 10; updateGachaDisplay();
+ showToast("扭蛋", "模擬抽獎結果: 繼續努力！", "goldfoil");
+ }
+ function simulateCheckin(region) { showToast("打卡", `模擬在 ${region} 打卡 (stub)`, "moss"); }
+ function saveConfigMock() { showToast("配置", "已模擬儲存 Firebase 公開配置 (stub)", "shinto"); }
+ function simulateOfflineWrite() { addConsoleLog("[模擬離線寫入] 已加入待同步佇列 (stub)。"); }
+ function forceSyncNow() { addConsoleLog("[模擬強制同步] 依 LWW 策略同步完成 (stub)。"); showToast("同步", "模擬強制同步完成", "emerald"); }
+ function openModal(id) { const el = document.getElementById(id); if (el) { el.classList.remove('hidden'); el.classList.add('flex'); } }
+ function closeModal(id) { const el = document.getElementById(id); if (el) { el.classList.add('hidden'); el.classList.remove('flex'); } }
+ function getSimulatedLocation() { document.getElementById('noteGeoInput').value = '34.9671, 135.7727'; }
+ function showToast(title, msg, theme) {
+ const c = document.getElementById('toastContainer');
+ if (!c) return;
+ const t = document.createElement('div');
+ t.className = 'bg-charcoal border border-gray-700 rounded-lg p-3 shadow-lg text-xs space-y-1 pointer-events-auto';
+ const h = document.createElement('div'); h.className = 'font-bold text-white'; h.textContent = title;
+ const m = document.createElement('div'); m.className = 'text-gray-400'; m.textContent = msg;
+ t.appendChild(h); t.appendChild(m);
+ c.appendChild(t);
+ setTimeout(() => t.remove(), 4000);
+ }
+ function addToSyncQueue(type, payload) { syncQueue.push({ type, payload, updatedAt: Date.now() }); document.getElementById('syncQueueCount').textContent = `佇列: ${syncQueue.length} (模擬)`; document.getElementById('syncBadge').classList.remove('hidden'); }
+ function addConsoleLog(msg) { const w = document.getElementById('queueLogWindow'); if (!w) return; const d = document.createElement('div'); d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`; w.appendChild(d); w.scrollTop = w.scrollHeight; }
+ function changeGachaPoints(n) { gachaPoints = Math.max(0, gachaPoints + n); updateGachaDisplay(); }
+ function updateGachaDisplay() { const el = document.getElementById('gachaPointsDisplay'); if (el) el.textContent = gachaPoints; localStorage.setItem('myjapan_gacha_points', gachaPoints); }
+ function updatePetAffinityDisplay() { const el = document.getElementById('petAffinity'); if (el) el.textContent = petAffinity; localStorage.setItem('myjapan_pet_affinity', petAffinity); }
+ function renderAchievements() {
+ const c = document.getElementById('achievementsContainer');
+ if (!c) return; c.innerHTML = '';
+ achievements.forEach(a => {
+ const row = document.createElement('div');
+ row.className = `p-3 rounded-lg border ${a.unlocked ? 'border-goldfoil/40 bg-goldfoil/5' : 'border-gray-800 bg-gray-900/30 opacity-60'}`;
+ const t = document.createElement('div'); t.className = `text-sm font-bold ${a.unlocked ? 'text-goldfoil' : 'text-gray-500'}`; t.textContent = a.title;
+ const d = document.createElement('div'); d.className = 'text-xs text-gray-400 mt-0.5'; d.textContent = a.desc;
+ row.appendChild(t); row.appendChild(d); c.appendChild(row);
+ });
+ }
+ // End stubs
+ </script>
+</body>
+</html>
