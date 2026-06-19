@@ -55,8 +55,10 @@ Schema is fully documented in `README.md` §4. No implementation yet — needs:
 
 ## 🤝 Collaborator
 
-- [x] `math-lish` invited as collaborator with **push** permission (accept email pending)
-- [x] Owner: `ai-lish` user (private repo as of 2026-06-19)
+- [x] `math-lish` invited as collaborator with **push** permission — ✅ **accepted** (verified 2026-06-20 via `/collaborators` endpoint)
+- [x] Owner: `ai-lish` user
+- [x] Repo renamed `my-japan-web-app` → `My-Japan` on 2026-06-20
+- [x] Visibility: PUBLIC
 
 ---
 
