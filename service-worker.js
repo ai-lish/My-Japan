@@ -1,6 +1,6 @@
 // service-worker.js
 // Standard Phase 2 PWA Service Worker with Same-Origin Filters & Navigation Timeout Fallback.
-const CACHE_NAME = 'my-japan-cache-v3';
+const CACHE_NAME = 'my-japan-cache-v4';
 const PRECACHE_ASSETS = [
  './index.html',
  './manifest.webmanifest'
