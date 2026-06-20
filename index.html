@@ -1144,9 +1144,10 @@
  let imgUrl = "https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80";
  if (imagePreset === "kyoto") imgUrl = "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80";
  if (imagePreset === "osaka") imgUrl = "https://images.unsplash.com/photo-1590250553826-ac32537b420e?auto=format&fit=crop&w=600&q=80";
- if (imagePreset === "okinawa") imgUrl = "
+ if (imagePreset === "okinawa") imgUrl = "https://images.unsplash.com/photo-1517411032315-54ef2cb783bb?auto=format&fit=crop&w=600&q=80";
+
  // =============================================================================
- // <<< TRUNCATION POINT (2026-06-19) >>>
+ // <<< HISTORICAL TRUNCATION POINT (2026-06-19) >>> — now closed on same line
  // Original source ended at: `if (imagePreset === "okinawa") imgUrl = "`
  // See TODO.md for list of missing JS handlers referenced from HTML events:
  // toggleNetworkStatus, addDialogueToFSRS, interactWithPet, triggerGacha,
@@ -1155,7 +1156,11 @@
  // addConsoleLog, changeGachaPoints, updateGachaDisplay, updatePetAffinityDisplay,
  // renderAchievements, the rest of submitNote, etc.
  // =============================================================================
- "https://images.unsplash.com/photo-1517411032315-54ef2cb783bb?auto=format&fit=crop&w=600&q=80";
+
+  // submitNote was truncated at imgUrl assignment — close it as a stub
+  closeModal('addNoteModal');
+  showToast("見聞", "已模擬新增筆記 (stub)", "shinto");
+  }
 
  // === Stubs for missing handlers (no-op or minimal so page renders) ===
  function toggleNetworkStatus() { showToast("網路狀態", "切換線上/離線模擬 (stub)", "shinto"); }
